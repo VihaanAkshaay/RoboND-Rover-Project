@@ -17,6 +17,22 @@ def color_thresh(img, rgb_thresh=(160, 160, 160)):
     # Return the binary image
     return color_select
 
+def rock_thresh(img,rgb_thresh=(90,90,50):
+    # Create and array of zeros same xy size as img , but with just one channel
+    color_select = np.zeros_like(img[:,:,0])
+    # Having a certain range for yellow of the rock
+    # rock_thresh will now have a boolean array with "True" where the pixels
+    # fall in the range set for a rock
+    rock_thresh = (img[:,:,0] > rgb_thresh[0]) \
+                & (img[:,:,1] > rgb_thresh[1]) \
+                & (img[:,:,2] < rgb_thresh[2])
+    # Index the array of zeros with the boolean array and set to 1 to highlight rock pixels
+    color_select[rock_thresh] = 1
+    # Return the binary image
+    return color_select
+
+def obstacle_thresh(img
+
 # Define a function to convert from image coords to rover coords
 def rover_coords(binary_img):
     # Identify nonzero pixels
@@ -83,9 +99,21 @@ def perception_step(Rover):
     # Perform perception steps to update Rover()
     # TODO: 
     # NOTE: camera image is coming to you in Rover.img
+    img = np.imread(Rover.img)
     # 1) Define source and destination points for perspective transform
+    source = np.float32([[14, 140], [301 ,140],[200, 96], [118, 96]])
+    dst_size = 5 
+    bottom_offset = 6
+    destination = np.float32([[image.shape[1]/2 - dst_size, image.shape[0] - bottom_offset],
+                  [image.shape[1]/2 + dst_size, image.shape[0] - bottom_offset],
+                  [image.shape[1]/2 + dst_size, image.shape[0] - 2*dst_size - bottom_offset], 
+                  [image.shape[1]/2 - dst_size, image.shape[0] - 2*dst_size - bottom_offset],
+                  ])
     # 2) Apply perspective transform
+    warped = perspect_transform(grid_img, source, destination)
+    plt.imshow(warped)
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
+    
     # 4) Update Rover.vision_image (this will be displayed on left side of screen)
         # Example: Rover.vision_image[:,:,0] = obstacle color-thresholded binary image
         #          Rover.vision_image[:,:,1] = rock_sample color-thresholded binary image
