@@ -17,8 +17,8 @@ def color_thresh(img, rgb_thresh=(160, 160, 160)):
     # Return the binary image
     return color_select
 
-def rock_thresh(img,rgb_thresh=(90,90,50):
-    # Create and array of zeros same xy size as img , but with just one channel
+def rock_thresh(img,rgb_thresh=(90,90,50)):
+    # Create and array of zeros with same xy size as img , but with just one channel
     color_select = np.zeros_like(img[:,:,0])
     # Having a certain range for yellow of the rock
     # rock_thresh will now have a boolean array with "True" where the pixels
@@ -31,9 +31,21 @@ def rock_thresh(img,rgb_thresh=(90,90,50):
     # Return the binary image
     return color_select
 
-def obstacle_thresh(img
-
-# Define a function to convert from image coords to rover coords
+def obstacle_thresh(img,rgb_thresh=(160,160,160)):
+    # Create an array of zeros with same xy size as img , but with just one channel
+    color_select=np.zeros_like(img[:,:,0])
+    # Anything that is darker than the navigable terrain is 
+    # an obstacle and we  use obst_thresh to have a boolean array
+    # with "True" where threshold was met
+    obst_thresh = (img[:,:,0] < 160) \
+                & (img[:,:,1] < 160) \
+                & (img[:,:,2] < 160)
+    # Index the array of zeros with the boolean array and set 1 to highlight the surroundings
+    color_select[obst_thresh] = 1
+    # Return the binary image
+    return color_select
+   
+    # Define a function to convert from image coords to rover coords
 def rover_coords(binary_img):
     # Identify nonzero pixels
     ypos, xpos = binary_img.nonzero()
@@ -111,25 +123,53 @@ def perception_step(Rover):
                   ])
     # 2) Apply perspective transform
     warped = perspect_transform(grid_img, source, destination)
-    plt.imshow(warped)
+    
     # 3) Apply color threshold to identify navigable terrain/obstacles/rock samples
+    obs_img = obstacle_thresh(img)
+    nav_img = color_thresh(img)
+    rock_img = rock_thresh(img)
     
     # 4) Update Rover.vision_image (this will be displayed on left side of screen)
-        # Example: Rover.vision_image[:,:,0] = obstacle color-thresholded binary image
-        #          Rover.vision_image[:,:,1] = rock_sample color-thresholded binary image
-        #          Rover.vision_image[:,:,2] = navigable terrain color-thresholded binary image
+    Rover.vision_image[:,:,0] = obs_img * 255
+    Rover.vision_image[:,:,1] = rock_img * 255
+    Rover.vision_image[:,:,2] = nav_img * 255
 
     # 5) Convert map image pixel values to rover-centric coords
+    nav_xpix, nav_ypix = rover_coords(nav_img)
+    obs_xpix, obs_ypix = rover_coords(obs_img)
+    rocks_xpix,rocks_ypix = rover_coords(rock_img)
+    
+    
     # 6) Convert rover-centric pixel values to world coordinates
-    # 7) Update Rover worldmap (to be displayed on right side of screen)
-        # Example: Rover.worldmap[obstacle_y_world, obstacle_x_world, 0] += 1
-        #          Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
-        #          Rover.worldmap[navigable_y_world, navigable_x_world, 2] += 1
+       
+    scale = dst_size * 2
+    xpos, ypos = Rover.pos
+    yaw = Rover.yaw
+    worldmap_size = Rover.worldmap.shape[0]
+    
+    
+    nav_x_world,nav_y_world = pix_to_world(nav_xpix,nav_ypix,xpos,ypos,yaw,worldmap_size,scale)
+    obs_x_world,obs_y_world = pix_to_world(obs_xpix,obs_ypix,xpos,ypos,yaw,worldmap_size,scale)
+    rock_x_world,rock_y_world = pix_to_world(rock_xpix,rock_ypix,xpos,ypos,yaw,worldmap_size,scale)
+    
+        
+        
+        
+        
+        
+        
+        # 7) Update Rover worldmap (to be displayed on right side of screen)
+    Rover.worldmap[obs_y_world, obs_x_world, 0] += 1
+    Rover.worldmap[rock_y_world, rock_x_world, 1] += 1
+    Rover.worldmap[nav_y_world, nav_x_world, 2] += 1
 
     # 8) Convert rover-centric pixel positions to polar coordinates
+    dist,ang = to_polar_coords(nav_xpix,nav_ypix)
+    
     # Update Rover pixel distances and angles
-        # Rover.nav_dists = rover_centric_pixel_distances
-        # Rover.nav_angles = rover_centric_angles
+    Rover.nav_dists = dist
+    Rover.nav_angles = ang
+    
     
  
     
